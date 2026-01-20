@@ -24,6 +24,7 @@ if err != nil {
 	break
 	}
 	
+	// parsing logic for extracting the command from request 
 	var comm command 
 	i := 0 
 	for range n-1 {	
@@ -40,6 +41,8 @@ if err != nil {
  i++      
 }
 connec.Write([]byte("+OK\r\n"))
+
+//passing the command into command chaannel 
 ch<-comm
 
 }
@@ -53,6 +56,9 @@ func main() {
 		return 
 	}
 
+	store := NewStore()
+
+
 	for{
 
 	connection , err := listener.Accept()
@@ -63,9 +69,12 @@ func main() {
 	fmt.Println("New connection established....")
     
 	ch := make( chan command , 20 )
+
+	//starting go routin to read from the command channel to execute desired command 
+	go execute(ch , *store  )
+
 	go handleConnection( connection , ch  )
 	   
 	}
     
-
 }
