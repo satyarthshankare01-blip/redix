@@ -7,8 +7,7 @@ import (
 )
 
 type command  struct {
-	cm string
-	arg []string
+	args []string
 
 }
 
@@ -16,39 +15,34 @@ func handleConnection (connec net.Conn , ch chan<- command ) {
 	defer connec.Close()
 	buf := make([]byte , 2024 )
 
-    for {
-	n , err := connec.Read(buf)
+for {
+
+n , err := connec.Read(buf)
 		
-	if err != nil {
+if err != nil {
 	fmt.Println("closing the connection: " , err )
 	break
 	}
 	
+	var comm command 
 	i := 0 
-	for  range n  {
-	fmt.Println(string(buf[i]))
-	i++
-	}
-	
-	if string(buf[0]) == "*"{
-    val , _ := strconv.Atoi(string(buf[1]))
-	
-	j := 1+4
-	for range val {
-	if()
-    nbtR,_ := strconv.Atoi(string(buf[i+3]))
+	for range n-1 {	
 
-	str := string(bug[])
-	}
+	if string(buf[i]) == "$"{
 
-	}
-	
+    nb ,_ := strconv.Atoi(string(buf[i+1]))
 
+    fmt.Println(string(buf[i+4:i+4+nb]))
+	comm.args = append( comm.args , string(buf[i+4:i+4+nb]) )
 
-	connec.Write([]byte("+OK\r\n"))
+   }
 
-        
-	 }
+ i++      
+}
+connec.Write([]byte("+OK\r\n"))
+ch<-comm
+
+}
 
 }
 
