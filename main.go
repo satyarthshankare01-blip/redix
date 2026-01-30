@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 )
 
@@ -11,6 +12,7 @@ type command  struct {
 
 }
 
+// function to handle each of the tcp connection 
 func handleConnection (connec net.Conn , ch chan<- command ) {
 	defer connec.Close()
 	buf := make([]byte , 2024 )
@@ -42,14 +44,40 @@ if err != nil {
 }
 connec.Write([]byte("+OK\r\n"))
 
-//passing the command into command chaannel 
+//passing the command into command channel 
 ch<-comm
 
 }
 
 }
 
+// function to look if there is pre-existing data is present for the redis in dedicated file or is the first time boot 
+// of this redis application
+
+func checkForData() *os.File {
+
+file ,err := os.Open("datadb")
+
+	if os.IsNotExist(err){
+		fmt.Println("this file does not exist")
+		return nil
+	}
+
+	if err != nil {
+		fmt.Println("Error while opening the file ")
+		
+	}
+
+	return file
+}
+
+
 func main() {
+    
+    //dataFile := checkForData()
+    
+	//if dataFile is not nil then we will load data in the map here 
+
 	listener, err := net.Listen("tcp" , ":6379")
 	if err != nil {
 		fmt.Println("ERROR while listening to the tcp :", err )
@@ -71,12 +99,12 @@ func main() {
 	ch := make( chan command , 20 )
 
 	//starting go routin to read from the command channel to execute desired command 
-	go execute(ch , store  )
+	go execute(ch , store )
 
 	go handleConnection( connection , ch  )
 	   
 	}
 
-	
+
     
 }
