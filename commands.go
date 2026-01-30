@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type Item struct {
 // Notice there are NO mutexes here because the channel handles safety.
 type Store struct {
 	data map[string]Item
+  mu   sync.Mutex
 }
 
 func NewStore() *Store {
@@ -37,7 +39,7 @@ func (s *Store ) get(key string ){
   return 
   }
   // checking if the key has passed the time limit of expiry if yes then delete it from the map
-  
+
   if time.Since(result.expiry) > 2 * time.Second{
      delete(s.data , key)
      fmt.Println("your key expired!!")
