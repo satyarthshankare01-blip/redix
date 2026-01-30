@@ -71,7 +71,7 @@ func main() {
 	ch := make( chan command , 20 )
 
 	//starting go routin to read from the command channel to execute desired command 
-	go execute(ch , *store  )
+	go execute(ch , store  )
 
 	go handleConnection( connection , ch  )
 	   

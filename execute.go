@@ -3,7 +3,7 @@ import (
 	"strings"
 )
 
-func execute( ch <-chan command , store Store ) {
+func execute( ch <-chan command , store *Store ) {
 
 	 for cm := range ch {
       
@@ -15,7 +15,7 @@ func execute( ch <-chan command , store Store ) {
 		store.get(cm.args[1]   )
 
 	case "DELETE":
-         store.delete(cm.args[1] ,  )
+         store.delete(cm.args[1]   )
 
 	}
 	
