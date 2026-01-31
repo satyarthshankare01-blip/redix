@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strconv"
+	"errors"
 )
 
 type command  struct {
@@ -13,14 +15,18 @@ type command  struct {
 }
 
 // function to handle each of the tcp connection 
-func handleConnection (connec net.Conn , ch chan<- command ) {
+func handleConnection (connec net.Conn , ch chan<- command , done <-chan struct{}) {
 	defer connec.Close()
 	buf := make([]byte , 2024 )
 
-for {
+go func( ){
+	<-done
+	close(ch)
+	connec.Close()
+}()
 
-n , err := connec.Read(buf)
-		
+for {
+n , err := connec.Read(buf)		
 if err != nil {
 	fmt.Println("closing the connection: " , err )
 	break
@@ -42,58 +48,97 @@ if err != nil {
 
  i++      
 }
-connec.Write([]byte("+OK\r\n"))
 
+connec.Write([]byte("+OK\r\n"))
 //passing the command into command channel 
 ch<-comm
+}
+
+
 
 }
 
-}
+
 
 // function to look if there is pre-existing data is present for the redis in dedicated file or is the first time boot 
 // of this redis application
 
-func checkForData() *os.File {
+func checkForData() (*os.File , int) {
 
 file ,err := os.Open("datadb")
 
 	if os.IsNotExist(err){
 		fmt.Println("this file does not exist")
-		return nil
+		return nil , 1
 	}
 
 	if err != nil {
-		fmt.Println("Error while opening the file ")
-		
+	fmt.Println("Error while opening the file ")
+	return nil , 0 
 	}
 
-	return file
+	return file , 1
+	
 }
 
 
 func main() {
+
+	sigs := make(chan os.Signal , 1)
+	signal.Notify(sigs , os.Interrupt)
+	done := make(chan struct{})
     
-    //dataFile := checkForData()
+//Listening for the interrupt signal and closeing the done channel if interrupt is received
+	go func () {
+     <-sigs
+	 close(done)
+	}()
+
     
+    dataFile , i := checkForData()
+
+	if dataFile == nil && i == 0 {
+	close(sigs)
+	close(done)
+    return 
+	}
+
 	//if dataFile is not nil then we will load data in the map here 
 
+
 	listener, err := net.Listen("tcp" , ":6379")
+
+
 	if err != nil {
-		fmt.Println("ERROR while listening to the tcp :", err )
-		return 
+	fmt.Println("ERROR while listening to the tcp :", err )
+	return 
+
 	}
 
 	store := NewStore()
 
 
-	for{
+// If the done channel is closed then the server will stop listening to the tcp connection 
+	go func(){
+    <-done
+	listener.Close()
+	}()
 
+
+	for {
 	connection , err := listener.Accept()
+
     if err != nil {
-	fmt.Println("Failed to Establish the Connection: ", err )
+	
+	if errors.Is( err , net.ErrClosed ){
+    fmt.Println("the listener is closed: SHUTTING DOW THE SERVER")
+	return
+	}
+
+	
 	continue
-	} 
+	}
+
 	fmt.Println("New connection established....")
     
 	ch := make( chan command , 20 )
@@ -101,10 +146,9 @@ func main() {
 	//starting go routin to read from the command channel to execute desired command 
 	go execute(ch , store )
 
-	go handleConnection( connection , ch  )
+	go handleConnection( connection , ch , done  )
 	   
 	}
 
-
-    
+   
 }
