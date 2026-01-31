@@ -44,8 +44,6 @@ func saveSnapshot(store *Store) {
 	file.Write([]byte{0xFF})
 
 	os.Rename(filename , "datadb")
-
-
-    
+  
 
 }
